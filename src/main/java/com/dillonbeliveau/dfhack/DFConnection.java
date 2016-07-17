@@ -10,9 +10,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -33,13 +33,12 @@ public class DFConnection {
     private static final Logger log = LogManager.getLogger(DFConnection.class);
 
     Socket connection;
-    OutputStream connection_output;
-    InputStream connection_input;
+    DataOutputStream connection_output;
+    DataInputStream connection_input;
 
     @Getter
     boolean connected = false;
 
-    // RemoteFunction<CoreProtocol.CoreBindRequest, CoreProtocol.CoreBindReply> bindMethodCall;
     RemoteFunction<CoreProtocol.EmptyMessage, CoreProtocol.IntMessage> coreSuspendCall;
     RemoteFunction<CoreProtocol.EmptyMessage, CoreProtocol.IntMessage> coreResumeCall;
 
@@ -55,8 +54,8 @@ public class DFConnection {
             log.info("Attempting to connect to DF...");
             try {
                 connection = new Socket(host, port);
-                connection_output = connection.getOutputStream();
-                connection_input = connection.getInputStream();
+                connection_output = new DataOutputStream(connection.getOutputStream());
+                connection_input = new DataInputStream(connection.getInputStream());
 
                 byte[] request = ByteBuffer
                         .allocate(4 + REQUEST_MAGIC.length)
@@ -70,8 +69,8 @@ public class DFConnection {
 
                 byte[] buffer = new byte[RESPONSE_MAGIC.length];
                 byte[] versionBuffer = new byte[4];
-                connection_input.read(buffer, 0, buffer.length);
-                connection_input.read(versionBuffer, 0, versionBuffer.length);
+                connection_input.readFully(buffer, 0, buffer.length);
+                connection_input.readFully(versionBuffer, 0, versionBuffer.length);
                 int responseProtocolVersion = ByteBuffer.wrap(versionBuffer).order(ByteOrder.LITTLE_ENDIAN).getInt();
 
                 if (Arrays.equals(buffer, RESPONSE_MAGIC) &&  responseProtocolVersion == PROTOCOL_VERSION) {
@@ -97,14 +96,17 @@ public class DFConnection {
                             "dfproto", CoreProtocol.EmptyMessage.class,
                             "RemoteFortressReader", RemoteFortressReader.ScreenCapture.class, RemoteFortressReader.ScreenCapture.PARSER,
                             "RemoteFortressReader", "CopyScreen", connection);
+
                     rfrUnitListCall = new RemoteFunction<>(
                             "dfproto", CoreProtocol.EmptyMessage.class,
                             "RemoteFortressReader", RemoteFortressReader.UnitList.class, RemoteFortressReader.UnitList.PARSER,
                             "RemoteFortressReader", "GetUnitList", connection);
+
                     rfrWorldMapCall = new RemoteFunction<>(
                             "dfproto", CoreProtocol.EmptyMessage.class,
                             "RemoteFortressReader", RemoteFortressReader.WorldMap.class, RemoteFortressReader.WorldMap.PARSER,
                             "RemoteFortressReader", "GetWorldMap", connection);
+
                     rfrRegionMapCall = new RemoteFunction<>(
                             "dfproto", CoreProtocol.EmptyMessage.class,
                             "RemoteFortressReader", RemoteFortressReader.RegionMaps.class, RemoteFortressReader.RegionMaps.PARSER,
@@ -115,12 +117,12 @@ public class DFConnection {
 
                 }
                 else {
-                    log.info("Received incorrect response magic.");
+                    log.error("Received incorrect response magic. Connection failed.");
                     connected = false;
                 }
             } catch (IOException e) {
                 connected = false;
-                log.info("Connection failed.");
+                log.error("Connection failed.");
             }
         }
     }
@@ -131,17 +133,20 @@ public class DFConnection {
     private RemoteFortressReader.WorldMap worldMap;
     private RemoteFortressReader.RegionMaps regionMaps;
 
+    private CoreProtocol.EmptyMessage empty() {
+        return CoreProtocol.EmptyMessage.getDefaultInstance();
+    }
 
     private void init() throws IOException {
-        // Get some initial stuff
-        // Necessary for initialization, apparently.
-        coreSuspendCall.execute(CoreProtocol.EmptyMessage.getDefaultInstance());
-        viewInfo = rfrViewInfoCall.execute(CoreProtocol.EmptyMessage.getDefaultInstance());
-        screenCapture = rfrCopyScreenCall.execute(CoreProtocol.EmptyMessage.getDefaultInstance());
-        unitList = rfrUnitListCall.execute(CoreProtocol.EmptyMessage.getDefaultInstance());
-        worldMap = rfrWorldMapCall.execute(CoreProtocol.EmptyMessage.getDefaultInstance());
-        regionMaps = rfrRegionMapCall.execute(CoreProtocol.EmptyMessage.getDefaultInstance());
-        coreResumeCall.execute(CoreProtocol.EmptyMessage.getDefaultInstance());
+        coreSuspendCall.execute(empty());
+
+        viewInfo = rfrViewInfoCall.execute(empty());
+        screenCapture = rfrCopyScreenCall.execute(empty());
+        unitList = rfrUnitListCall.execute(empty());
+        worldMap = rfrWorldMapCall.execute(empty());
+        regionMaps = rfrRegionMapCall.execute(empty());
+
+        coreResumeCall.execute(empty());
 
         /*
         materialListCall = CreateAndBind<dfproto.EmptyMessage, RemoteFortressReader.MaterialList>(networkClient, "GetMaterialList", "RemoteFortressReader");

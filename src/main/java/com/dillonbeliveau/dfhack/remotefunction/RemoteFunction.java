@@ -7,8 +7,8 @@ import com.google.protobuf.Parser;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
+import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -27,9 +27,10 @@ public class RemoteFunction<Input extends GeneratedMessageLite, Output extends G
     private static final Logger log = LogManager.getLogger(RemoteFunction.class);
 
     private final short RPC_REPLY_RESULT = -1;
-    private final short RPC_REPLY_FAIL = -1;
+    private final short RPC_REPLY_FAIL = -2;
     private final short RPC_REPLY_TEXT = -3;
     private final short RPC_REQUEST_QUIT = -4;
+
 
     String byteBufferToString(byte[] buffer) {
         char[] temp = new char[buffer.length];
@@ -55,7 +56,7 @@ public class RemoteFunction<Input extends GeneratedMessageLite, Output extends G
         this.socket = socket;
         this.outputParser = outputParser;
 
-        log.info("Binding remote method " + plugin + "::" + method + "...");
+        log.debug("Binding remote method " + plugin + "::" + method + "...");
 
         CoreProtocol.CoreBindRequest.Builder requestBuilder = CoreProtocol.CoreBindRequest.newBuilder()
                 .setMethod(method)
@@ -80,25 +81,40 @@ public class RemoteFunction<Input extends GeneratedMessageLite, Output extends G
                         .put(command)
                         .array());
 
-        InputStream inputStream = socket.getInputStream();
+        bindReply = CoreProtocol.CoreBindReply.parseFrom(getResponse(socket));
+    }
+
+    private byte[] getResponse(Socket socket) throws IOException {
         RPCMessageHeader responseHeader;
+        DataInputStream inputStream = new DataInputStream(socket.getInputStream());
+
         do {
             byte[] replyHeaderBuffer = new byte[8];
-            inputStream.read(replyHeaderBuffer);
+            inputStream.readFully(replyHeaderBuffer);
             responseHeader = new RPCMessageHeader(replyHeaderBuffer);
             switch (responseHeader.getId()) {
                 case RPC_REPLY_TEXT:
                     byte[] textBuffer = new byte[responseHeader.getSize()];
-                    inputStream.read(textBuffer);
+                    inputStream.readFully(textBuffer);
                     String text = byteBufferToString(textBuffer);
                     log.info("Received text reply: " + text);
+                    break;
+                case RPC_REPLY_FAIL:
+                    log.error("Failed with error code: " + responseHeader.getSize());
+                    break;
+                case RPC_REPLY_RESULT:
+                    log.debug("Received header indicating a success. Response size: " + responseHeader.getSize());
+                    log.debug("Remaining on stream: " + inputStream.available());
             }
-        } while(responseHeader.getId() != RPC_REPLY_RESULT);
+        } while (responseHeader.getId() != RPC_REPLY_RESULT);
 
         byte[] reply = new byte[responseHeader.getSize()];
-        inputStream.read(reply);
+        log.debug("Allocated space for a response size of: " + reply.length);
+        DataInputStream ds = new DataInputStream(inputStream);
+        ds.readFully(reply);
 
-        bindReply = CoreProtocol.CoreBindReply.parseFrom(reply);
+        log.debug("Read " + reply.length + " bytes. " + inputStream.available() + " bytes remain on stream.");
+        return reply;
     }
 
     public Output execute(Input arg) throws IOException {
@@ -110,16 +126,11 @@ public class RemoteFunction<Input extends GeneratedMessageLite, Output extends G
                         .put(header_buffer)
                         .put(input_buffer)
                         .array());
+        socket.getOutputStream().flush();
 
-        RPCMessageHeader replyHeader;
-        do {
-            byte[] replyHeaderBuffer = new byte[8];
-            socket.getInputStream().read(replyHeaderBuffer);
-            replyHeader = new RPCMessageHeader(replyHeaderBuffer);
-        } while (replyHeader.getId() != RPC_REPLY_RESULT);
+        byte[] replyBuffer = getResponse(socket);
 
-        byte[] replyBuffer = new byte[replyHeader.getSize()];
-        socket.getInputStream().read(replyBuffer);
-        return outputParser.parseFrom(replyBuffer);
+        Output output = outputParser.parseFrom(replyBuffer);
+        return output;
     }
 }
