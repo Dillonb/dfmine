@@ -96,91 +96,11 @@ public class DFConnection {
                 int responseProtocolVersion = ByteBuffer.wrap(versionBuffer).order(ByteOrder.LITTLE_ENDIAN).getInt();
 
                 if (Arrays.equals(buffer, RESPONSE_MAGIC) &&  responseProtocolVersion == PROTOCOL_VERSION) {
-                    connected = true;
                     log.info("Connection successful! Binding RPCs...");
-
-                    coreSuspendCall = new RemoteFunction<>(
-                            "dfproto", CoreProtocol.EmptyMessage.class,
-                            "dfproto", CoreProtocol.IntMessage.class, CoreProtocol.IntMessage.PARSER,
-                            "CoreSuspend", connection);
-
-                    coreResumeCall = new RemoteFunction<>(
-                            "dfproto", CoreProtocol.EmptyMessage.class,
-                            "dfproto", CoreProtocol.IntMessage.class, CoreProtocol.IntMessage.PARSER,
-                            "CoreResume", connection);
-
-                    rfrViewInfoCall = new RemoteFunction<>(
-                            "dfproto", CoreProtocol.EmptyMessage.class,
-                            "RemoteFortressReader", RemoteFortressReader.ViewInfo.class, RemoteFortressReader.ViewInfo.PARSER,
-                            "RemoteFortressReader", "GetViewInfo", connection);
-
-                    rfrCopyScreenCall = new RemoteFunction<>(
-                            "dfproto", CoreProtocol.EmptyMessage.class,
-                            "RemoteFortressReader", RemoteFortressReader.ScreenCapture.class, RemoteFortressReader.ScreenCapture.PARSER,
-                            "RemoteFortressReader", "CopyScreen", connection);
-
-                    rfrUnitListCall = new RemoteFunction<>(
-                            "dfproto", CoreProtocol.EmptyMessage.class,
-                            "RemoteFortressReader", RemoteFortressReader.UnitList.class, RemoteFortressReader.UnitList.PARSER,
-                            "RemoteFortressReader", "GetUnitList", connection);
-
-                    rfrWorldMapCall = new RemoteFunction<>(
-                            "dfproto", CoreProtocol.EmptyMessage.class,
-                            "RemoteFortressReader", RemoteFortressReader.WorldMap.class, RemoteFortressReader.WorldMap.PARSER,
-                            "RemoteFortressReader", "GetWorldMap", connection);
-
-                    rfrRegionMapCall = new RemoteFunction<>(
-                            "dfproto", CoreProtocol.EmptyMessage.class,
-                            "RemoteFortressReader", RemoteFortressReader.RegionMaps.class, RemoteFortressReader.RegionMaps.PARSER,
-                            "RemoteFortressReader", "GetRegionMaps", connection);
-
-                    rfrMaterialListCall = new RemoteFunction<>(
-                            "dfproto", CoreProtocol.EmptyMessage.class,
-                            "RemoteFortressReader", RemoteFortressReader.MaterialList.class, RemoteFortressReader.MaterialList.PARSER,
-                            "RemoteFortressReader", "GetMaterialList", connection);
-
-                    rfrItemListCall = new RemoteFunction<>(
-                            "dfproto", CoreProtocol.EmptyMessage.class,
-                            "RemoteFortressReader", RemoteFortressReader.MaterialList.class, RemoteFortressReader.MaterialList.PARSER,
-                            "RemoteFortressReader", "GetItemList", connection);
-
-                    rfrTiletypeListCall = new RemoteFunction<>(
-                            "dfproto", CoreProtocol.EmptyMessage.class,
-                            "RemoteFortressReader", RemoteFortressReader.TiletypeList.class, RemoteFortressReader.TiletypeList.PARSER,
-                            "RemoteFortressReader", "GetTiletypeList", connection);
-
-                    rfrBlockListCall = new RemoteFunction<>(
-                            "RemoteFortressReader", RemoteFortressReader.BlockRequest.class,
-                            "RemoteFortressReader", RemoteFortressReader.BlockList.class, RemoteFortressReader.BlockList.PARSER,
-                            "RemoteFortressReader", "GetBlockList", connection);
-
-                    rfrMapInfoCall = new RemoteFunction<>(
-                            "dfproto", CoreProtocol.EmptyMessage.class,
-                            "RemoteFortressReader", RemoteFortressReader.MapInfo.class, RemoteFortressReader.MapInfo.PARSER,
-                            "RemoteFortressReader", "GetMapInfo", connection);
-
-                    rfrBuildingListCall = new RemoteFunction<>(
-                            "dfproto", CoreProtocol.EmptyMessage.class,
-                            "RemoteFortressReader", RemoteFortressReader.BuildingList.class, RemoteFortressReader.BuildingList.PARSER,
-                            "RemoteFortressReader", "GetBuildingDefList", connection);
-
-                    rfrWorldMapCenterCall = new RemoteFunction<>(
-                            "dfproto", CoreProtocol.EmptyMessage.class,
-                            "RemoteFortressReader", RemoteFortressReader.WorldMap.class, RemoteFortressReader.WorldMap.PARSER,
-                            "RemoteFortressReader", "GetWorldMapCenter", connection);
-
-                    rfrCreatureRawListCall = new RemoteFunction<>(
-                            "dfproto", CoreProtocol.EmptyMessage.class,
-                            "RemoteFortressReader", RemoteFortressReader.CreatureRawList.class, RemoteFortressReader.CreatureRawList.PARSER,
-                            "RemoteFortressReader", "GetCreatureRaws", connection);
-
-                    rfrPlantRawListCall = new RemoteFunction<>(
-                            "dfproto", CoreProtocol.EmptyMessage.class,
-                            "RemoteFortressReader", RemoteFortressReader.PlantRawList.class, RemoteFortressReader.PlantRawList.PARSER,
-                            "RemoteFortressReader", "GetPlantRaws", connection);
-
+                    bindRPCs();
                     log.info("Successfully bound all RPCs!");
                     init();
+                    connected = true;
                 }
                 else {
                     log.error("Received incorrect response magic. Connection failed.");
@@ -196,15 +116,128 @@ public class DFConnection {
         return CoreProtocol.EmptyMessage.getDefaultInstance();
     }
 
+    private void bindRPCs() throws IOException {
+        coreSuspendCall = new RemoteFunction<>(
+                "dfproto", CoreProtocol.EmptyMessage.class,
+                "dfproto", CoreProtocol.IntMessage.class, CoreProtocol.IntMessage.PARSER,
+                "CoreSuspend", connection);
+
+        coreResumeCall = new RemoteFunction<>(
+                "dfproto", CoreProtocol.EmptyMessage.class,
+                "dfproto", CoreProtocol.IntMessage.class, CoreProtocol.IntMessage.PARSER,
+                "CoreResume", connection);
+
+        rfrViewInfoCall = new RemoteFunction<>(
+                "dfproto", CoreProtocol.EmptyMessage.class,
+                "RemoteFortressReader", RemoteFortressReader.ViewInfo.class, RemoteFortressReader.ViewInfo.PARSER,
+                "RemoteFortressReader", "GetViewInfo", connection);
+
+        rfrCopyScreenCall = new RemoteFunction<>(
+                "dfproto", CoreProtocol.EmptyMessage.class,
+                "RemoteFortressReader", RemoteFortressReader.ScreenCapture.class, RemoteFortressReader.ScreenCapture.PARSER,
+                "RemoteFortressReader", "CopyScreen", connection);
+
+        rfrUnitListCall = new RemoteFunction<>(
+                "dfproto", CoreProtocol.EmptyMessage.class,
+                "RemoteFortressReader", RemoteFortressReader.UnitList.class, RemoteFortressReader.UnitList.PARSER,
+                "RemoteFortressReader", "GetUnitList", connection);
+
+        rfrWorldMapCall = new RemoteFunction<>(
+                "dfproto", CoreProtocol.EmptyMessage.class,
+                "RemoteFortressReader", RemoteFortressReader.WorldMap.class, RemoteFortressReader.WorldMap.PARSER,
+                "RemoteFortressReader", "GetWorldMap", connection);
+
+        rfrRegionMapCall = new RemoteFunction<>(
+                "dfproto", CoreProtocol.EmptyMessage.class,
+                "RemoteFortressReader", RemoteFortressReader.RegionMaps.class, RemoteFortressReader.RegionMaps.PARSER,
+                "RemoteFortressReader", "GetRegionMaps", connection);
+
+        rfrMaterialListCall = new RemoteFunction<>(
+                "dfproto", CoreProtocol.EmptyMessage.class,
+                "RemoteFortressReader", RemoteFortressReader.MaterialList.class, RemoteFortressReader.MaterialList.PARSER,
+                "RemoteFortressReader", "GetMaterialList", connection);
+
+        rfrItemListCall = new RemoteFunction<>(
+                "dfproto", CoreProtocol.EmptyMessage.class,
+                "RemoteFortressReader", RemoteFortressReader.MaterialList.class, RemoteFortressReader.MaterialList.PARSER,
+                "RemoteFortressReader", "GetItemList", connection);
+
+        rfrTiletypeListCall = new RemoteFunction<>(
+                "dfproto", CoreProtocol.EmptyMessage.class,
+                "RemoteFortressReader", RemoteFortressReader.TiletypeList.class, RemoteFortressReader.TiletypeList.PARSER,
+                "RemoteFortressReader", "GetTiletypeList", connection);
+
+        rfrBlockListCall = new RemoteFunction<>(
+                "RemoteFortressReader", RemoteFortressReader.BlockRequest.class,
+                "RemoteFortressReader", RemoteFortressReader.BlockList.class, RemoteFortressReader.BlockList.PARSER,
+                "RemoteFortressReader", "GetBlockList", connection);
+
+        rfrMapInfoCall = new RemoteFunction<>(
+                "dfproto", CoreProtocol.EmptyMessage.class,
+                "RemoteFortressReader", RemoteFortressReader.MapInfo.class, RemoteFortressReader.MapInfo.PARSER,
+                "RemoteFortressReader", "GetMapInfo", connection);
+
+        rfrBuildingListCall = new RemoteFunction<>(
+                "dfproto", CoreProtocol.EmptyMessage.class,
+                "RemoteFortressReader", RemoteFortressReader.BuildingList.class, RemoteFortressReader.BuildingList.PARSER,
+                "RemoteFortressReader", "GetBuildingDefList", connection);
+
+        rfrWorldMapCenterCall = new RemoteFunction<>(
+                "dfproto", CoreProtocol.EmptyMessage.class,
+                "RemoteFortressReader", RemoteFortressReader.WorldMap.class, RemoteFortressReader.WorldMap.PARSER,
+                "RemoteFortressReader", "GetWorldMapCenter", connection);
+
+        rfrCreatureRawListCall = new RemoteFunction<>(
+                "dfproto", CoreProtocol.EmptyMessage.class,
+                "RemoteFortressReader", RemoteFortressReader.CreatureRawList.class, RemoteFortressReader.CreatureRawList.PARSER,
+                "RemoteFortressReader", "GetCreatureRaws", connection);
+
+        rfrPlantRawListCall = new RemoteFunction<>(
+                "dfproto", CoreProtocol.EmptyMessage.class,
+                "RemoteFortressReader", RemoteFortressReader.PlantRawList.class, RemoteFortressReader.PlantRawList.PARSER,
+                "RemoteFortressReader", "GetPlantRaws", connection);
+    }
+
+    RemoteFortressReader.MaterialList materialList;
+    RemoteFortressReader.MaterialList itemList;
+    RemoteFortressReader.TiletypeList tiletypeList;
+    RemoteFortressReader.BuildingList buildingList;
+    RemoteFortressReader.CreatureRawList creatureRawList;
+    RemoteFortressReader.PlantRawList plantRawList;
+
     private void init() throws IOException {
+        // Grab some static information
+        log.info("Loading static information:");
+        log.info("Loading material list...");
+        materialList = rfrMaterialListCall.execute(empty());
+        log.info("Loading item list...");
+        itemList = rfrItemListCall.execute(empty());
+        log.info("Loading tiletype list...");
+        tiletypeList = rfrTiletypeListCall.execute(empty());
+        log.info("Loading building list...");
+        buildingList = rfrBuildingListCall.execute(empty());
+        log.info("Loading creature list...");
+        creatureRawList = rfrCreatureRawListCall.execute(empty());
+        log.info("Loading plant list...");
+        plantRawList = rfrPlantRawListCall.execute(empty());
+
+        log.info("Loading dynamic information: (Suspending game execution)");
+        // Must suspend the game before fetching this information
         coreSuspendCall.execute(empty());
 
+        log.info("Loading view info...");
         viewInfo = rfrViewInfoCall.execute(empty());
+        log.info("Loading screen capture...");
         screenCapture = rfrCopyScreenCall.execute(empty());
+        log.info("Loading unit list...");
         unitList = rfrUnitListCall.execute(empty());
+        log.info("Loading world map...");
         worldMap = rfrWorldMapCall.execute(empty());
+        log.info("Loading region maps...");
         regionMaps = rfrRegionMapCall.execute(empty());
 
+        log.info("All done! Resuming...");
         coreResumeCall.execute(empty());
+
     }
 }
