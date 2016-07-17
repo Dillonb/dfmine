@@ -210,16 +210,22 @@ public class DFConnection {
         log.info("Loading static information:");
         log.info("Loading material list...");
         materialList = rfrMaterialListCall.execute(empty());
+        log.info("Loaded " + materialList.getMaterialListCount() + " materials.");
         log.info("Loading item list...");
         itemList = rfrItemListCall.execute(empty());
+        log.info("Loaded " + itemList.getMaterialListCount() + " items.");
         log.info("Loading tiletype list...");
         tiletypeList = rfrTiletypeListCall.execute(empty());
+        log.info("Loaded " + tiletypeList.getTiletypeListCount() + " tiletypes.");
         log.info("Loading building list...");
         buildingList = rfrBuildingListCall.execute(empty());
+        log.info("Loaded " + buildingList.getBuildingListCount() + " buildings.");
         log.info("Loading creature list...");
         creatureRawList = rfrCreatureRawListCall.execute(empty());
+        log.info("Loaded " + creatureRawList.getCreatureRawsCount() + " creatures.");
         log.info("Loading plant list...");
         plantRawList = rfrPlantRawListCall.execute(empty());
+        log.info("Loaded " + plantRawList.getPlantRawsCount() + " plants.");
 
         log.info("Loading dynamic information: (Suspending game execution)");
         // Must suspend the game before fetching this information
